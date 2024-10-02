@@ -1,6 +1,10 @@
 from transformers import BertForSequenceClassification, Trainer, TrainingArguments
 from sklearn.metrics import accuracy_score
 from dataset import get_dataset, balance_dataset, train_val_test_split
+import torch
+import torchattacks
+import numpy as np
+import random
 
 
 def compute_metrics(p):
@@ -22,8 +26,8 @@ dataset = get_dataset("data/asterisk_ast_train.json")
 dataset = balance_dataset(dataset)
 
 # Split the dataset into train, validation, and test sets
-train_dataset, val_dataset, _ = train_val_test_split(dataset) # Train on benign source code
-test_dataset = get_dataset("data/asterisk_ast_test_ADV.json")
+train_dataset, val_dataset, test_dataset = train_val_test_split(dataset) # Train on benign source code
+adv_test_dataset = get_dataset("data/asterisk_ast_test_ADV.json")
 
 model = BertForSequenceClassification.from_pretrained('google/bert_uncased_L-2_H-128_A-2',
                                                       num_labels=2)
@@ -48,5 +52,9 @@ trainer.train()
 trainer.evaluate()
 
 # Test the model
-predictions = trainer.predict(test_dataset)
-print(compute_metrics(predictions))
+predictions_benign = trainer.predict(test_dataset)
+predictions_adv = trainer.predict(adv_test_dataset)
+
+# Print the metrics
+print("The accuracy when using benign test samples", compute_metrics(predictions_benign))
+print("The accuracy when using adversarial test samples", compute_metrics(predictions_adv))
